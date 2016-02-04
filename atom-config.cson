@@ -1,0 +1,5 @@
+"*":
+  editor:
+    tabType: "hard"
+    tabLength: 4
+    fontSize: 14
