@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Kalacs</title>
+		<link rel="icon" type="image/png" href="/favicon.png"/>
+		<script src="angular/angular.min.js" charset="utf-8"></script>
+		<script src="app.js" charset="utf-8"></script>
+		<script src="js/testController.js" charset="utf-8"></script>
+	</head>
+	<body ng-app="cameraClient">
+		<div ng-controller="testCotroller">
+
+			<video width="320" height="240" controls>
+				<source src="http://localhost:3000/video" type="video/mp4">
+				<!-- <source src="" type="video/h264"> -->
+				Your browser does not support the video tag.
+			</video>
+		</div>
+	</body>
+</html>
