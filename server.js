@@ -1,10 +1,12 @@
 'use strict';
 
 const cors = require('cors');
+const debug = require('debug')('recording');
 const express = require('express');
-const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
+const moment = require('moment');
 const net = require('net');
+const schedule = require('node-schedule');
 const path = require('path');
 
 const config = require('./server/config');
@@ -19,14 +21,10 @@ app.get('/', function (req, res) {
 	res.sendFile('public/index.html', {root: __dirname});
 });
 
-// new ffmpeg({source: 'records/kalacs.h264'})
-// 	.output('records/kalacs.webm')
-// 	.run();
-
 app.get('/video', function (req, res) {
 	var file = path.resolve(__dirname, 'records/kalacs.mp4');
-
-	req.headers.range = '0-';
+	console.log(req.headers.range);
+	req.headers.range = '0-36000';
 	var range = req.headers.range;
 	console.log(req.headers);
 	var positions = range.replace(/bytes=/, '').split('-');
@@ -45,41 +43,52 @@ app.get('/video', function (req, res) {
 			'Content-Type': 'video/mp4'
 		});
 
+		console.log(`start: ${start}`);
+		console.log(`end: ${end}`);
 		var stream = fs.createReadStream(file, { start: start, end: end });
-			stream.pipe(res);
+		stream.pipe(res);
 	});
-
-
-
-
-	// var outstream = fs.createReadStream(file);
-	// res.pipe(outstream);
-	// outstream.on('data', chunk => {
-	// 	console.log('CHUNK');
-	// });
-	// outstream.on('end', () => {
-	// 	console.log('END');
-	// });
-	// fs.readFile('records/kalacs.h264', (error, data) => {
-	// 	if (error) {
-	// 		throw error;
-	// 	}
-	// 	console.log(data);
-	// 	res.pipe(data);
-	// });
 });
 
 app.listen(config.port_client);
 
 net.createServer(function (socket) {
-	var writeVideo = fs.createWriteStream('records/kalacs.h264');
+	let yearMonthFolder;
+	let startTime;
+	let writeVideo;
+
+	// run this every midnight
+	schedule.scheduleJob('0 0 * * *', createNewVideoFile);
+
+	function closeFile () {
+		writeVideo.end();
+		const endTime = moment().format('DD_HH:mm:ss');
+		fs.rename(`records/${yearMonthFolder}/${startTime}.h264`, `records/${yearMonthFolder}/${startTime}_-_${endTime}.h264`);
+		debug('video file closed');
+	}
+
+	function createNewVideoFile () {
+		if (writeVideo) {
+			closeFile();
+		}
+
+		yearMonthFolder = moment().format('YYYY-MM');
+		if (!fs.existsSync(`records/${yearMonthFolder}`)) {
+			fs.mkdirSync(`records/${yearMonthFolder}`);
+		}
+		startTime = moment().format('DD_HH:mm:ss');
+		writeVideo = fs.createWriteStream(`records/${yearMonthFolder}/${startTime}.h264`);
+		debug('video file created');
+	}
+
+	createNewVideoFile();
 
 	socket.on('data', function (chunk) {
 		writeVideo.write(chunk);
 	});
 	socket.on('close', function () {
-		console.log('thatsallfolks');
-		// writeVideo.end();
+		closeFile();
+		debug('camera disconnected');
 	});
-	console.log('dat net');
+	debug('camera connected...');
 }).listen(config.port_record);
