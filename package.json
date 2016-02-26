@@ -4,7 +4,7 @@
   "description": "Backend for PI camera",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon server/app.js",
+    "start": "nodemon server.js",
     "lint": "eslint app.js src"
   },
   "engines": {
