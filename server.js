@@ -76,6 +76,9 @@ net.createServer(function (socket) {
 		if (!fs.existsSync(`records/${yearMonthFolder}`)) {
 			fs.mkdirSync(`records/${yearMonthFolder}`);
 		}
+		if (!fs.existsSync('records')) {
+			fs.mkdirSync('records');
+		}
 		startTime = moment().format('DD_HH:mm:ss');
 		writeVideo = fs.createWriteStream(`records/${yearMonthFolder}/${startTime}.h264`);
 		debug('video file created');
