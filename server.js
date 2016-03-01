@@ -13,10 +13,31 @@ const config = require('./server/config');
 
 const app = express();
 
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+
+io.on('connection', function (socket) {
+	console.log('Client connected...');
+
+	socket.on('camera_connected', function (data) {
+
+		schedule.scheduleJob('* * * * *', () => {
+			console.log('JOB');
+			socket.emit('restart_recording');
+		});
+
+
+		console.log(data);
+	});
+
+});
+http.listen(4000, '0.0.0.0');
+
 app.use(cors());
 app.use(express.static('public/bower_components'));
 app.use(express.static('public'));
 console.log(__dirname);
+
 app.get('/', function (req, res) {
 	res.sendFile('public/index.html', {root: __dirname});
 });
@@ -56,9 +77,12 @@ net.createServer(function (socket) {
 	let yearMonthFolder;
 	let startTime;
 	let writeVideo;
+	let createNewFileFlag = false;
 
 	// run this every midnight
-	schedule.scheduleJob('0 0 * * *', createNewVideoFile);
+	// schedule.scheduleJob('* * * * *', () => {
+	// 	createNewFileFlag = true;
+	// });
 
 	function closeFile () {
 		writeVideo.end();
@@ -87,8 +111,25 @@ net.createServer(function (socket) {
 	createNewVideoFile();
 
 	socket.on('data', function (chunk) {
+		// if (createNewFileFlag) {
+		// 	createNewVideoFile();
+		// 	createNewFileFlag = false;
+		// 	debug('Should be in new file. Is the old one closed and the new one opened?');
+		// }
 		writeVideo.write(chunk);
 	});
+	socket.on('end', function () {
+		// closeFile();
+		debug('END');
+	});
+	socket.on('drain', function () {
+		// closeFile();
+		debug('DRAIN');
+	});
+	// socket.on('close', function () {
+	// 	closeFile();
+	// 	debug('camera disconnected');
+	// });
 	socket.on('close', function () {
 		closeFile();
 		debug('camera disconnected');
