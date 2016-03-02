@@ -17,17 +17,12 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
 io.on('connection', function (socket) {
-	console.log('Client connected...');
-
-	socket.on('camera_connected', function (data) {
-
-		schedule.scheduleJob('* * * * *', () => {
-			console.log('JOB');
+	debug('Client camera connected.');
+	socket.on('camera_connected', function (/*data*/) {
+		schedule.scheduleJob('0 * * * *', () => {
 			socket.emit('restart_recording');
+			debug('restart_recording event emitted...');
 		});
-
-
-		console.log(data);
 	});
 
 });
@@ -77,18 +72,12 @@ net.createServer(function (socket) {
 	let yearMonthFolder;
 	let startTime;
 	let writeVideo;
-	let createNewFileFlag = false;
-
-	// run this every midnight
-	// schedule.scheduleJob('* * * * *', () => {
-	// 	createNewFileFlag = true;
-	// });
 
 	function closeFile () {
 		writeVideo.end();
 		const endTime = moment().format('DD_HH:mm:ss');
 		fs.rename(`records/${yearMonthFolder}/${startTime}.h264`, `records/${yearMonthFolder}/${startTime}_-_${endTime}.h264`);
-		debug('video file closed');
+		debug('Video file closed.');
 	}
 
 	function createNewVideoFile () {
@@ -105,34 +94,20 @@ net.createServer(function (socket) {
 		}
 		startTime = moment().format('DD_HH:mm:ss');
 		writeVideo = fs.createWriteStream(`records/${yearMonthFolder}/${startTime}.h264`);
-		debug('video file created');
+		debug('New video file created.');
 	}
 
 	createNewVideoFile();
 
 	socket.on('data', function (chunk) {
-		// if (createNewFileFlag) {
-		// 	createNewVideoFile();
-		// 	createNewFileFlag = false;
-		// 	debug('Should be in new file. Is the old one closed and the new one opened?');
-		// }
 		writeVideo.write(chunk);
 	});
 	socket.on('end', function () {
-		// closeFile();
-		debug('END');
+		debug('The recording stream has been cut.');
 	});
-	socket.on('drain', function () {
-		// closeFile();
-		debug('DRAIN');
-	});
-	// socket.on('close', function () {
-	// 	closeFile();
-	// 	debug('camera disconnected');
-	// });
 	socket.on('close', function () {
 		closeFile();
-		debug('camera disconnected');
+		debug('Client camera disconnected from TCP.');
 	});
-	debug('camera connected...');
+	debug('Camera connected on TCP.');
 }).listen(config.port_record);
